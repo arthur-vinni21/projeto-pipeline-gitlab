@@ -1,3 +1,3 @@
-# Pipeline para infra terraform utilizando Gitlab
+# Pipeline para iac terraform utilizando Gitlab
 Além disso foi utilizado o verificador de infraestrutura kics.
 
