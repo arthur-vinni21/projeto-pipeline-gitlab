@@ -1,0 +1,72 @@
+# Estágios que irão fazer parte da pipeline #
+# Os stages estão utilizando um runner cadastrado no gitlab chamamdo runner-1 #
+
+stages: 
+ - test
+ - plan 
+ - deploy
+
+# Imagem que a pipeline irá utilizar #
+
+image: 
+  name: hashicorp/terraform:latest
+  entrypoint: [""]
+before_script:
+   - terraform init 
+
+# Validador de código para infra kics utilizando imagem referente #
+
+kics-scan:
+  image: 
+    name: checkmarx/kics:latest-alpine
+    entrypoint:
+      - [""]
+  stage: test
+  script:
+    - kics scan -q /app/bin/assets/queries -p ${PWD} --ignore-on-exit all --report-formats "html" -o ${PWD}
+  artifacts:
+    paths:
+      - results.html
+    when: always
+  allow_failure: true
+  tags:
+    - runner-1
+
+# Estágio de validação do arquivo terraform #
+
+validate:
+  stage: test
+  before_script:
+    - terraform --version
+    - terraform init
+  script:
+    - terraform validate
+  tags:
+    - runner-1
+
+# Estágio de plan onde irá mostrar tudo que será implantando #
+
+plan:
+  stage: plan
+  before_script:
+    - terraform --version
+    - terraform init
+  script:
+    - terraform plan
+  tags:
+    - runner-1
+
+# Estágio de aplicação onde irá ser aplicada as configurações do plan de forma manual #
+
+apply:
+  stage: deploy
+  before_script:
+    - terraform --version
+    - terraform init
+  script:
+    - terraform apply -no-color -input=false -auto-approve
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+      when: manual
+  tags:
+    - runner-1
